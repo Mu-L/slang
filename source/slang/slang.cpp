@@ -331,6 +331,7 @@ void Session::writeStdlibDoc(String config)
         auto rootPage = writer.writeAll(config.getUnownedSlice());
         File::writeAllText("toc.html", writer.writeTOC());
         rootPage->writeToDisk();
+        rootPage->writeSummary(toSlice("summary.txt"));
     }
     ComPtr<ISlangBlob> diagnosticBlob;
     sink.getBlobIfNeeded(diagnosticBlob.writeRef());
@@ -5857,7 +5858,7 @@ void Session::addBuiltinSource(
 
         SLANG_UNEXPECTED("error in Slang standard library");
     }
-
+    
     // Compiling stdlib should not yield any warnings.
     SLANG_ASSERT(sink.outputBuffer.getLength() == 0);
 

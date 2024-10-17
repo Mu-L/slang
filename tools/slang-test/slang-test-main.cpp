@@ -1132,7 +1132,8 @@ static SlangResult _extractRenderTestRequirements(const CommandLine& cmdLine, Te
             break;
         case RenderApiType::WebGPU:
             target = SLANG_WGSL;
-            SLANG_ASSERT(!usePassthru);
+            nativeLanguage = SLANG_SOURCE_LANGUAGE_WGSL;
+            passThru = SLANG_PASS_THROUGH_TINT;
             break;
     }
 
@@ -4644,7 +4645,8 @@ SlangResult innerMain(int argc, char** argv)
         static constexpr int kFailedTestLimitForRetry = 16;
         if (context.failedFileTests.getCount() <= kFailedTestLimitForRetry)
         {
-            printf("Retrying %d failed tests...\n", (int)context.failedFileTests.getCount());
+            if (context.failedFileTests.getCount() > 0)
+                printf("Retrying %d failed tests...\n", (int)context.failedFileTests.getCount());
             for (auto& test : context.failedFileTests)
             {
                 FileTestInfoImpl* fileTestInfo = static_cast<FileTestInfoImpl*>(test.Ptr());
@@ -4660,6 +4662,7 @@ SlangResult innerMain(int argc, char** argv)
             for (auto& test : context.failedFileTests)
             {
                 FileTestInfoImpl* fileTestInfo = static_cast<FileTestInfoImpl*>(test.Ptr());
+                TestReporter::SuiteScope suiteScope(&reporter, "tests");
                 TestReporter::TestScope scope(&reporter, fileTestInfo->testName);
                 reporter.addResult(TestResult::Fail);
             }

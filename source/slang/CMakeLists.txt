@@ -20,7 +20,7 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E make_directory ${SLANG_CAPABILITY_OUTPUT_DIR}
     COMMAND
         slang-capability-generator ${SLANG_CAPABILITY_SOURCE} --target-directory
-        ${SLANG_CAPABILITY_OUTPUT_DIR}
+        ${SLANG_CAPABILITY_OUTPUT_DIR} --doc "${slang_SOURCE_DIR}/docs/user-guide/a3-02-reference-capability-atoms.md"
     DEPENDS ${SLANG_CAPABILITY_SOURCE} slang-capability-generator
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
     VERBATIM
@@ -179,8 +179,6 @@ set(slang_build_args
         # a warning is disabled for a memset boundary check.
         # everything looked fine and it is unclear why the checking fails
         $<$<CXX_COMPILER_ID:GNU>:-Wno-error=stringop-overflow>
-    # slang.h is in the project root, so include that directory in the interface
-    # for slang
     INCLUDE_DIRECTORIES_PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/slang-version-header
     EXPORT_MACRO_PREFIX SLANG
     EXPORT_TYPE_AS ${SLANG_LIB_TYPE} 
@@ -198,11 +196,13 @@ set(slang_link_args
         SPIRV-Headers
 )
 set(slang_interface_args
+    # slang.h is in the project root, so include that directory in the interface
+    # for slang
     INCLUDE_DIRECTORIES_PUBLIC ${slang_SOURCE_DIR}
 ) 
 set(slang_public_lib_args
     PUBLIC_HEADERS 
-        ${slang_SOURCE_DIR}/slang*.h 
+        ${slang_SOURCE_DIR}/include/slang*.h 
         ${CMAKE_CURRENT_BINARY_DIR}/slang-version-header/*.h
     LINK_WITH_PRIVATE
         $<IF:$<BOOL:${SLANG_EMBED_STDLIB}>,slang-embedded-stdlib,slang-no-embedded-stdlib>
@@ -229,6 +229,7 @@ if(NOT SLANG_EMBED_STDLIB)
         ${slang_link_args}
         ${slang_interface_args}
         ${slang_public_lib_args}
+        INSTALL_COMPONENT generators
     )
     add_library(slang-without-embedded-stdlib ALIAS slang) 
 else()
@@ -256,6 +257,9 @@ else()
             slang-common-objects
             slang-no-embedded-stdlib 
             slang-embedded-stdlib-source
+        OUTPUT_DIR generators
+        FOLDER generators
+        INSTALL_COMPONENT generators
     )
     slang_add_target(
         .

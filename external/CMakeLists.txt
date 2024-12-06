@@ -11,7 +11,10 @@ endif()
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.25")
     set(system SYSTEM)
 else()
-    message(STATUS "CMake 3.25 is required to suppress warnings originating in headers in external/ but you are using ${CMAKE_VERSION}, be prepared for some warnings")
+    message(
+        STATUS
+        "CMake 3.25 is required to suppress warnings originating in headers in external/ but you are using ${CMAKE_VERSION}, be prepared for some warnings"
+    )
     set(system)
 endif()
 
@@ -24,12 +27,12 @@ if(NOT SLANG_ENABLE_EXTERNAL_COMPILER_WARNINGS)
     endif()
 endif()
 
-if (NOT ${SLANG_USE_SYSTEM_UNORDERED_DENSE})
+if(NOT ${SLANG_USE_SYSTEM_UNORDERED_DENSE})
     add_subdirectory(unordered_dense EXCLUDE_FROM_ALL ${system})
 endif()
 
 # Miniz
-if (NOT ${SLANG_USE_SYSTEM_MINIZ})
+if(NOT ${SLANG_USE_SYSTEM_MINIZ})
     add_subdirectory(miniz EXCLUDE_FROM_ALL ${system})
     set_property(TARGET miniz PROPERTY POSITION_INDEPENDENT_CODE ON)
     # Work around https://github.com/richgel999/miniz/pull/292
@@ -41,28 +44,31 @@ if (NOT ${SLANG_USE_SYSTEM_MINIZ})
 endif()
 
 # LZ4
-if (NOT ${SLANG_USE_SYSTEM_LZ4})
+if(NOT ${SLANG_USE_SYSTEM_LZ4})
     set(LZ4_BUNDLED_MODE ON)
     add_subdirectory(lz4/build/cmake EXCLUDE_FROM_ALL ${system})
     if(MSVC)
-		target_compile_options(
-		    lz4_static
-		    PRIVATE /wd5045 /wd4820 /wd4711 /wd6385 /wd6262
-		)
+        target_compile_options(
+            lz4_static
+            PRIVATE /wd5045 /wd4820 /wd4711 /wd6385 /wd6262
+        )
     endif()
 endif()
 
 # Vulkan headers
-if (NOT ${SLANG_USE_SYSTEM_VULKAN_HEADERS})
+if(NOT ${SLANG_USE_SYSTEM_VULKAN_HEADERS})
     add_subdirectory(vulkan EXCLUDE_FROM_ALL ${system})
 endif()
 
 # metal-cpp headers
 add_library(metal-cpp INTERFACE)
-target_include_directories(metal-cpp INTERFACE "${CMAKE_CURRENT_LIST_DIR}/metal-cpp")
+target_include_directories(
+    metal-cpp
+    INTERFACE "${CMAKE_CURRENT_LIST_DIR}/metal-cpp"
+)
 
 # SPIRV-Headers
-if (NOT ${SLANG_USE_SYSTEM_SPIRV_HEADERS})
+if(NOT ${SLANG_USE_SYSTEM_SPIRV_HEADERS})
     add_subdirectory(spirv-headers EXCLUDE_FROM_ALL ${system})
 endif()
 
@@ -85,13 +91,22 @@ endif()
 add_library(imgui INTERFACE)
 target_include_directories(imgui INTERFACE "${CMAKE_CURRENT_LIST_DIR}/imgui")
 
+# stb
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE "${CMAKE_CURRENT_LIST_DIR}/stb")
+
+# slang-rhi
 if(SLANG_ENABLE_SLANG_RHI)
-    # slang-rhi
     set(SLANG_RHI_BINARY_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/bin)
-    set(SLANG_RHI_SLANG_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
+    set(SLANG_RHI_SLANG_INCLUDE_DIR ${slang_SOURCE_DIR}/include)
     set(SLANG_RHI_SLANG_BINARY_DIR ${CMAKE_BINARY_DIR})
     set(SLANG_RHI_BUILD_TESTS OFF)
     set(SLANG_RHI_BUILD_EXAMPLES OFF)
+
+    # Not disabling these break tests (issue #5474)
+    set(SLANG_RHI_FETCH_DXC OFF)
+    set(SLANG_RHI_FETCH_AGILITY_SDK OFF)
+
     if(SLANG_ENABLE_DX_ON_VK)
         set(SLANG_RHI_HAS_D3D12 ON)
     endif()

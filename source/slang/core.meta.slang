@@ -416,13 +416,18 @@ void __requireGLSLExtension(constexpr String preludeText);
 __intrinsic_op($(kIROp_StaticAssert))
 void static_assert(constexpr bool condition, NativeString errorMessage);
 
-/// Interface to denote types as differentiable.
-/// Allows for user-specified differential types as
-/// well as automatic generation, for when the associated type
-/// hasn't been declared explicitly.
-/// Note that the requirements must currently be defined in this exact order
-/// since the auto-diff pass relies on the order to grab the struct keys.
+/// Represents a type that is differentiable for the purposes of automatic differentiation.
 /// 
+/// Implemented by builtin floating-point scalar types (`float`, `half`, `double`)
+///
+/// vector<T, N>, matrix<T, N, M> and Array<T, N> automatically conform to
+///  `IDifferentiable` if `T` conforms to `IDifferentiable`.
+///
+/// @remarks Types that implement `IDifferentiable` can be used with the automatic differentiation
+/// primitives `bwd_diff` and `fwd_diff` to load and store gradients of parameters. 
+/// @remarks This interface supports automatic synthesis of requirements. A struct that conforms to `IDifferentiable`
+/// will have its `Differential`, `dzero()` and `dadd()` methods automatically synthesized based on its fields, if 
+/// they are not already defined.
 __magic_type(DifferentiableType)
 interface IDifferentiable
 {
@@ -446,9 +451,13 @@ interface IDifferentiable
     static Differential dmul(T, Differential);
 };
 
-/// Represents a type that supports differentiation operations for pointer types.
-/// This interface is used to define operations that are specific to pointer types
-/// in the context of automatic differentiation.
+/// @experimental
+///
+/// Represents a type that supports differentiation operations for pointers, buffers and
+/// any other types 
+///
+/// @remarks Support for this interface is still experimental and subject to change.
+///
 __magic_type(DifferentiablePtrType)
 interface IDifferentiablePtrType
 {
@@ -458,8 +467,9 @@ interface IDifferentiablePtrType
 
 
 /// Pair type that serves to wrap the primal and
-/// differential types of an arbitrary type T.
-
+/// differential types of a differentiable value type
+/// T that conforms to `IDifferentiable`.
+///
 __generic<T : IDifferentiable>
 __magic_type(DifferentialPairType)
 __intrinsic_type($(kIROp_DifferentialPairUserCodeType))
@@ -528,6 +538,10 @@ struct DifferentialPair : IDifferentiable
     }
 };
 
+/// Pair type that serves to wrap the primal and
+/// differential types of a differentiable pointer type
+/// T that conforms to `IDifferentiablePtrType`.
+///
 __generic<T : IDifferentiablePtrType>
 __magic_type(DifferentialPtrPairType)
 __intrinsic_type($(kIROp_DifferentialPtrPairType))
@@ -1023,6 +1037,47 @@ struct Ptr
         ref;
     }
 };
+
+//@hidden:
+__intrinsic_op($(kIROp_AlignedAttr))
+void __align_attr(int alignment);
+
+__intrinsic_op($(kIROp_Load))
+T __load_aligned<T, U>(T* ptr, U alignmentAttr);
+
+__intrinsic_op($(kIROp_Store))
+void __store_aligned<T, U>(T* ptr, T value, U alignmentAttr);
+
+//@public:
+
+/// Load a value from a pointer with a known alignment.
+/// Aligned loads are more efficient than unaligned loads on some platforms.
+/// @param alignment The alignment of the load operation.
+/// @param ptr The pointer to load from.
+/// @return The value loaded from the pointer.
+/// @remarks When targeting SPIRV, this function maps to an `OpLoad` instruction with the `Aligned` memory operand.
+/// The functions maps to normal load operation on other targets.
+///
+[__NoSideEffect]
+[ForceInline]
+T loadAligned<int alignment, T>(T* ptr)
+{
+    return __load_aligned(ptr, __align_attr(alignment));
+}
+
+/// Store a value to a pointer with a known alignment.
+/// Aligned stores are more efficient than unaligned stores on some platforms.
+/// @param alignment The alignment of the store operation.
+/// @param ptr The pointer to store value to.
+/// @param value The value to store.
+/// @remarks When targeting SPIRV, this function maps to an `OpStore` instruction with the `Aligned` memory operand.
+/// The functions maps to normal store operation on other targets.
+///
+[ForceInline]
+void storeAligned<int alignment, T>(T* ptr, T value)
+{
+    __store_aligned(ptr, value, __align_attr(alignment));
+}
 
 //@hidden:
 __intrinsic_op($(kIROp_Load))
@@ -1871,7 +1926,7 @@ for (int tt = 0; tt < kBaseTypeCount; ++tt)
 
 //@ public:
 
-__generic<T>
+__generic<T, L:IBufferDataLayout = DefaultDataLayout>
 __intrinsic_type($(kIROp_ConstantBufferType))
 __magic_type(ConstantBufferType)
 struct ConstantBuffer {}

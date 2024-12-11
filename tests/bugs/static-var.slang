@@ -1,6 +1,5 @@
 // gh-775-ext.slang
 //TEST(compute):COMPARE_COMPUTE: -shaderobj
-//DISABLE_TEST(compute):COMPARE_COMPUTE_EX:-wgpu
 
 int test(int inVal)
 {
@@ -9,7 +8,7 @@ int test(int inVal)
 }
 
 //TEST_INPUT:ubuffer(data=[9 9 9 9], stride=4):out,name outputBuffer
-RWStructuredBuffer<int> outputBuffer : register(u0);
+RWStructuredBuffer<int> outputBuffer;
 
 [numthreads(4, 1, 1)]
 void computeMain(uint3 dispatchThreadID : SV_DispatchThreadID)

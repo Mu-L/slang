@@ -1,6 +1,7 @@
+#include "slang-wasm.h"
+
 #include <emscripten/bind.h>
 #include <slang-com-ptr.h>
-#include "slang-wasm.h"
 
 using namespace emscripten;
 
@@ -8,72 +9,106 @@ EMSCRIPTEN_BINDINGS(slang)
 {
     constant("SLANG_OK", SLANG_OK);
 
-    function(
-        "createGlobalSession",
-        &slang::wgsl::createGlobalSession,
-        return_value_policy::take_ownership());
+    function("getLastError", &slang::wgsl::getLastError);
 
-    function(
-        "getLastError",
-        &slang::wgsl::getLastError);
-
-    function(
-        "getCompileTargets",
-        &slang::wgsl::getCompileTargets,
-        return_value_policy::take_ownership());
+    function("getCompileTargets", &slang::wgsl::getCompileTargets);
 
     class_<slang::wgsl::GlobalSession>("GlobalSession")
         .function(
             "createSession",
             &slang::wgsl::GlobalSession::createSession,
-            return_value_policy::take_ownership());
+            allow_raw_pointers());
+
+    function("createGlobalSession", &slang::wgsl::createGlobalSession, allow_raw_pointers());
 
     class_<slang::wgsl::Session>("Session")
         .function(
             "loadModuleFromSource",
             &slang::wgsl::Session::loadModuleFromSource,
-            return_value_policy::take_ownership())
+            allow_raw_pointers())
         .function(
             "createCompositeComponentType",
             &slang::wgsl::Session::createCompositeComponentType,
-            return_value_policy::take_ownership());
+            allow_raw_pointers());
 
     class_<slang::wgsl::ComponentType>("ComponentType")
+        .function("link", &slang::wgsl::ComponentType::link, allow_raw_pointers())
+        .function("getEntryPointCode", &slang::wgsl::ComponentType::getEntryPointCode)
+        .function("getEntryPointCodeBlob", &slang::wgsl::ComponentType::getEntryPointCodeBlob)
+        .function("getTargetCodeBlob", &slang::wgsl::ComponentType::getTargetCodeBlob)
+        .function("getTargetCode", &slang::wgsl::ComponentType::getTargetCode)
+        .function("getLayout", &slang::wgsl::ComponentType::getLayout, allow_raw_pointers())
+        .function("loadStrings", &slang::wgsl::ComponentType::loadStrings, allow_raw_pointers());
+
+    class_<slang::wgsl::TypeLayoutReflection>("TypeLayoutReflection")
         .function(
-            "link",
-            &slang::wgsl::ComponentType::link,
-            return_value_policy::take_ownership())
+            "getDescriptorSetDescriptorRangeType",
+            &slang::wgsl::TypeLayoutReflection::getDescriptorSetDescriptorRangeType);
+
+    class_<slang::wgsl::VariableLayoutReflection>("VariableLayoutReflection")
+        .function("getName", &slang::wgsl::VariableLayoutReflection::getName)
         .function(
-            "getEntryPointCode",
-            &slang::wgsl::ComponentType::getEntryPointCode)
+            "getTypeLayout",
+            &slang::wgsl::VariableLayoutReflection::getTypeLayout,
+            allow_raw_pointers())
+        .function("getBindingIndex", &slang::wgsl::VariableLayoutReflection::getBindingIndex);
+
+    class_<slang::wgsl::EntryPointReflection>("EntryPointReflection")
         .function(
-            "getEntryPointCodeSpirv",
-            &slang::wgsl::ComponentType::getEntryPointCodeSpirv);
+            "getComputeThreadGroupSize",
+            &slang::wgsl::EntryPointReflection::getComputeThreadGroupSize);
+
+    class_<slang::wgsl::EntryPointReflection::ThreadGroupSize>("ThreadGroupSize")
+        .property("x", &slang::wgsl::EntryPointReflection::ThreadGroupSize::x)
+        .property("y", &slang::wgsl::EntryPointReflection::ThreadGroupSize::y)
+        .property("z", &slang::wgsl::EntryPointReflection::ThreadGroupSize::z);
+
+    class_<slang::wgsl::ProgramLayout>("ProgramLayout")
+        .function("toJsonObject", &slang::wgsl::ProgramLayout::toJsonObject)
+        .function("getParameterCount", &slang::wgsl::ProgramLayout::getParameterCount)
+        .function(
+            "getParameterByIndex",
+            &slang::wgsl::ProgramLayout::getParameterByIndex,
+            allow_raw_pointers())
+        .function(
+            "getGlobalParamsTypeLayout",
+            &slang::wgsl::ProgramLayout::getGlobalParamsTypeLayout,
+            allow_raw_pointers())
+        .function(
+            "findEntryPointByName",
+            &slang::wgsl::ProgramLayout::findEntryPointByName,
+            allow_raw_pointers());
+
+    enum_<slang::BindingType>("BindingType")
+        .value("Unknown", slang::BindingType::Unknown)
+        .value("Texture", slang::BindingType::Texture)
+        .value("ConstantBuffer", slang::BindingType::ConstantBuffer)
+        .value("MutableRawBuffer", slang::BindingType::MutableRawBuffer)
+        .value("MutableTypedBuffer", slang::BindingType::MutableTypedBuffer)
+        .value("MutableTexture", slang::BindingType::MutableTexture);
 
     class_<slang::wgsl::Module, base<slang::wgsl::ComponentType>>("Module")
         .function(
             "findEntryPointByName",
             &slang::wgsl::Module::findEntryPointByName,
-            return_value_policy::take_ownership())
+            allow_raw_pointers())
         .function(
             "findAndCheckEntryPoint",
             &slang::wgsl::Module::findAndCheckEntryPoint,
-            return_value_policy::take_ownership());
+            allow_raw_pointers())
+        .function(
+            "getDefinedEntryPoint",
+            &slang::wgsl::Module::getDefinedEntryPoint,
+            allow_raw_pointers())
+        .function("getDefinedEntryPointCount", &slang::wgsl::Module::getDefinedEntryPointCount);
 
     value_object<slang::wgsl::Error>("Error")
         .field("type", &slang::wgsl::Error::type)
         .field("result", &slang::wgsl::Error::result)
         .field("message", &slang::wgsl::Error::message);
 
-    class_<slang::wgsl::EntryPoint, base<slang::wgsl::ComponentType>>("EntryPoint");
-
-    class_<slang::wgsl::CompileTargets>("CompileTargets")
-        .function(
-            "findCompileTarget",
-            &slang::wgsl::CompileTargets::findCompileTarget,
-            return_value_policy::take_ownership());
-
-    register_vector<slang::wgsl::ComponentType*>("ComponentTypeList");
+    class_<slang::wgsl::EntryPoint, base<slang::wgsl::ComponentType>>("EntryPoint")
+        .function("getName", &slang::wgsl::EntryPoint::getName, allow_raw_pointers());
 
     register_vector<std::string>("StringList");
     register_optional<std::vector<std::string>>();
@@ -81,7 +116,7 @@ EMSCRIPTEN_BINDINGS(slang)
     value_object<slang::wgsl::lsp::Position>("Position")
         .field("line", &slang::wgsl::lsp::Position::line)
         .field("character", &slang::wgsl::lsp::Position::character);
-    
+
     value_object<slang::wgsl::lsp::Range>("Range")
         .field("start", &slang::wgsl::lsp::Range::start)
         .field("end", &slang::wgsl::lsp::Range::end);
@@ -124,7 +159,7 @@ EMSCRIPTEN_BINDINGS(slang)
     value_object<slang::wgsl::lsp::CompletionContext>("CompletionContext")
         .field("triggerKind", &slang::wgsl::lsp::CompletionContext::triggerKind)
         .field("triggerCharacter", &slang::wgsl::lsp::CompletionContext::triggerCharacter);
-    
+
     value_array<std::array<uint32_t, 2>>("array_uint_2")
         .element(emscripten::index<0>())
         .element(emscripten::index<1>());
@@ -155,7 +190,7 @@ EMSCRIPTEN_BINDINGS(slang)
         .field("range", &slang::wgsl::lsp::DocumentSymbol::range)
         .field("selectionRange", &slang::wgsl::lsp::DocumentSymbol::selectionRange)
         .field("children", &slang::wgsl::lsp::DocumentSymbol::children);
-    
+
     register_vector<slang::wgsl::lsp::DocumentSymbol>("DocumentSymbolList");
     register_optional<std::vector<slang::wgsl::lsp::DocumentSymbol>>();
 
@@ -183,18 +218,12 @@ EMSCRIPTEN_BINDINGS(slang)
             "didChangeTextDocument",
             &slang::wgsl::lsp::LanguageServer::didChangeTextDocument,
             allow_raw_pointers())
-        .function(
-            "hover",
-            &slang::wgsl::lsp::LanguageServer::hover,
-            allow_raw_pointers())
+        .function("hover", &slang::wgsl::lsp::LanguageServer::hover, allow_raw_pointers())
         .function(
             "gotoDefinition",
             &slang::wgsl::lsp::LanguageServer::gotoDefinition,
             allow_raw_pointers())
-        .function(
-            "completion",
-            &slang::wgsl::lsp::LanguageServer::completion,
-            allow_raw_pointers())
+        .function("completion", &slang::wgsl::lsp::LanguageServer::completion, allow_raw_pointers())
         .function(
             "completionResolve",
             &slang::wgsl::lsp::LanguageServer::completionResolve,
@@ -215,9 +244,9 @@ EMSCRIPTEN_BINDINGS(slang)
             "getDiagnostics",
             &slang::wgsl::lsp::LanguageServer::getDiagnostics,
             allow_raw_pointers());
-    
+
     function(
         "createLanguageServer",
         &slang::wgsl::lsp::createLanguageServer,
         return_value_policy::take_ownership());
-}
+};

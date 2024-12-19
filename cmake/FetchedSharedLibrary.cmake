@@ -1,34 +1,50 @@
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(dep_shared_library_prefix "")
+else()
+    set(dep_shared_library_prefix "lib")
+endif()
+
 # Helper function to download and extract an archive
 function(download_and_extract archive_name url)
-    get_filename_component(extension ${url} EXT)
-    set(archive_path "${CMAKE_CURRENT_BINARY_DIR}/${archive_name}${extension}")
-    set(extract_dir "${CMAKE_CURRENT_BINARY_DIR}/${archive_name}")
+    cmake_path(GET url FILENAME filename_with_ext)
+    cmake_path(GET url STEM LAST_ONLY file_stem)
+    set(archive_path "${CMAKE_CURRENT_BINARY_DIR}/${filename_with_ext}")
+    set(extract_dir "${CMAKE_CURRENT_BINARY_DIR}/${file_stem}")
 
-    if(EXISTS ${url})
-        message(STATUS "Using local file for ${archive_name}: ${url}")
-        set(archive_path ${url})
+    # Check if already extracted
+    file(GLOB EXTRACT_DIR_CONTENTS "${extract_dir}/*")
+    if(EXTRACT_DIR_CONTENTS)
+        message(STATUS "Using existing extracted files in ${extract_dir}")
     else()
-        message(STATUS "Fetching ${archive_name} from ${url}")
-        file(DOWNLOAD ${url} ${archive_path}
-             # SHOW_PROGRESS
-             STATUS status
-        )
+        # Check if archive already exists
+        if(EXISTS ${url})
+            message(STATUS "Using local file for ${archive_name}: ${url}")
+            set(archive_path ${url})
+        elseif(EXISTS ${archive_path})
+            message(
+                STATUS
+                "Using existing archive for ${archive_name}: ${archive_path}"
+            )
+        else()
+            message(STATUS "Fetching ${archive_name} from ${url}")
+            file(DOWNLOAD ${url} ${archive_path} STATUS status)
 
-        list(GET status 0 status_code)
-        list(GET status 1 status_string)
-        if(NOT status_code EQUAL 0)
-            message(WARNING "Failed to download ${archive_name} from ${url}: ${status_string}")
-            return()
+            list(GET status 0 status_code)
+            list(GET status 1 status_string)
+            if(NOT status_code EQUAL 0)
+                message(
+                    WARNING
+                    "Failed to download ${archive_name} from ${url}: ${status_string}"
+                )
+                return()
+            endif()
         endif()
+
+        file(ARCHIVE_EXTRACT INPUT ${archive_path} DESTINATION ${extract_dir})
+        message(STATUS "${archive_name} extracted to ${extract_dir}")
     endif()
 
-    file(ARCHIVE_EXTRACT
-         INPUT ${archive_path}
-         DESTINATION ${extract_dir}
-    )
-
     set(${archive_name}_SOURCE_DIR ${extract_dir} PARENT_SCOPE)
-    message(STATUS "${archive_name} downloaded and extracted to ${extract_dir}")
 endfunction()
 
 # Add rules to copy & install shared library of name 'library_name' in the 'module_subdir' directory.
@@ -47,14 +63,11 @@ function(copy_fetched_shared_library library_name url)
     endif()
 
     set(shared_library_filename
-        "${CMAKE_SHARED_LIBRARY_PREFIX}${library_name}${CMAKE_SHARED_LIBRARY_SUFFIX}"
+        "${dep_shared_library_prefix}${library_name}${CMAKE_SHARED_LIBRARY_SUFFIX}"
     )
     macro(from_glob dir)
         # A little helper function
-        file(
-            GLOB_RECURSE source_object
-            "${dir}/${shared_library_filename}"
-        )
+        file(GLOB_RECURSE source_object "${dir}/${shared_library_filename}")
         list(LENGTH source_object nmatches)
         if(nmatches EQUAL 0)
             message(
@@ -75,7 +88,7 @@ function(copy_fetched_shared_library library_name url)
     elseif(
         url
             MATCHES
-            "${CMAKE_SHARED_LIBRARY_PREFIX}.+${CMAKE_SHARED_LIBRARY_SUFFIX}$"
+            "${dep_shared_library_prefix}.+${CMAKE_SHARED_LIBRARY_SUFFIX}$"
         AND EXISTS "${url}"
     )
         # Otherwise, if it's a direct path to a shared object, use that
@@ -88,14 +101,17 @@ function(copy_fetched_shared_library library_name url)
         elseif(ARG_IGNORE_FAILURE)
             return()
         else()
-            message(SEND_ERROR "Unable to download and extract ${library_name} from ${url}")
+            message(
+                SEND_ERROR
+                "Unable to download and extract ${library_name} from ${url}"
+            )
             return()
         endif()
     endif()
 
     # We didn't find it, just return and don't create a target and operation
     # which will fail
-    if(NOT EXISTS ${source_object} AND ARG_IGNORE_FAILURE)
+    if((NOT EXISTS "${source_object}") AND ARG_IGNORE_FAILURE)
         return()
     endif()
 
@@ -126,7 +142,7 @@ endfunction()
 function(install_fetched_shared_library library_name url)
     copy_fetched_shared_library(${library_name} ${url} ${ARGN})
     set(shared_library_filename
-        "${CMAKE_SHARED_LIBRARY_PREFIX}${library_name}${CMAKE_SHARED_LIBRARY_SUFFIX}"
+        "${dep_shared_library_prefix}${library_name}${CMAKE_SHARED_LIBRARY_SUFFIX}"
     )
     set(dest_object
         ${CMAKE_BINARY_DIR}/$<CONFIG>/${module_subdir}/${shared_library_filename}

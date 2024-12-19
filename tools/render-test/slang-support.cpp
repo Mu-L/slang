@@ -4,15 +4,15 @@
 
 #include "slang-support.h"
 
+#include "../../source/core/slang-string-util.h"
+#include "../../source/core/slang-test-tool-util.h"
 #include "options.h"
 
 #include <assert.h>
 #include <stdio.h>
 
-#include "../../source/core/slang-string-util.h"
-#include "../../source/core/slang-test-tool-util.h"
-
-namespace renderer_test {
+namespace renderer_test
+{
 using namespace Slang;
 
 // Entry point name to use for vertex/fragment shader
@@ -23,8 +23,7 @@ static const char rtEntryPointName[] = "raygenMain";
 static const char taskEntryPointName[] = "taskMain";
 static const char meshEntryPointName[] = "meshMain";
 
-void ShaderCompilerUtil::Output::set(
-    slang::IComponentType*              inSlangProgram)
+void ShaderCompilerUtil::Output::set(slang::IComponentType* inSlangProgram)
 {
     slangProgram = inSlangProgram;
     desc.slangGlobalScope = inSlangProgram;
@@ -41,7 +40,12 @@ void ShaderCompilerUtil::Output::reset()
     m_extraRequestForReflection = nullptr;
 }
 
-/* static */ SlangResult ShaderCompilerUtil::_compileProgramImpl(slang::IGlobalSession* globalSession, const Options& options, const Input& input, const ShaderCompileRequest& request, Output& out)
+/* static */ SlangResult ShaderCompilerUtil::_compileProgramImpl(
+    slang::IGlobalSession* globalSession,
+    const Options& options,
+    const Input& input,
+    const ShaderCompileRequest& request,
+    Output& out)
 {
     out.reset();
 
@@ -72,7 +76,8 @@ void ShaderCompilerUtil::Output::reset()
         // If there are additional args parse them
         if (args.getCount())
         {
-            const auto res = slangRequest->processCommandLineArguments(args.getBuffer(), int(args.getCount()));
+            const auto res =
+                slangRequest->processCommandLineArguments(args.getBuffer(), int(args.getCount()));
             // If there is a parse failure and diagnostic, output it
             if (SLANG_FAILED(res))
             {
@@ -89,8 +94,11 @@ void ShaderCompilerUtil::Output::reset()
     if (!hasRepro)
     {
         spSetCodeGenTarget(slangRequest, input.target);
-        if(input.profile.getLength()) // do not set profile unless requested
-            spSetTargetProfile(slangRequest, 0, spFindProfile(out.session, input.profile.getBuffer()));
+        if (input.profile.getLength()) // do not set profile unless requested
+            spSetTargetProfile(
+                slangRequest,
+                0,
+                spFindProfile(out.session, input.profile.getBuffer()));
         if (options.generateSPIRVDirectly)
             spSetTargetFlags(slangRequest, 0, SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY);
         else
@@ -146,23 +154,35 @@ void ShaderCompilerUtil::Output::reset()
         int translationUnitIndex = 0;
         {
             translationUnitIndex = spAddTranslationUnit(slangRequest, sourceLanguage, nullptr);
-            spAddTranslationUnitSourceString(slangRequest, translationUnitIndex, request.source.path, request.source.dataBegin);
+            spAddTranslationUnitSourceString(
+                slangRequest,
+                translationUnitIndex,
+                request.source.path,
+                request.source.dataBegin);
         }
 
         const int globalSpecializationArgCount = int(request.globalSpecializationArgs.getCount());
         for (int ii = 0; ii < globalSpecializationArgCount; ++ii)
         {
-            spSetTypeNameForGlobalExistentialTypeParam(slangRequest, ii, request.globalSpecializationArgs[ii].getBuffer());
+            spSetTypeNameForGlobalExistentialTypeParam(
+                slangRequest,
+                ii,
+                request.globalSpecializationArgs[ii].getBuffer());
         }
 
-        const int entryPointSpecializationArgCount = int(request.entryPointSpecializationArgs.getCount());
+        const int entryPointSpecializationArgCount =
+            int(request.entryPointSpecializationArgs.getCount());
         auto setEntryPointSpecializationArgs = [&](int entryPoint)
+        {
+            for (int ii = 0; ii < entryPointSpecializationArgCount; ++ii)
             {
-                for (int ii = 0; ii < entryPointSpecializationArgCount; ++ii)
-                {
-                    spSetTypeNameForEntryPointExistentialTypeParam(slangRequest, entryPoint, ii, request.entryPointSpecializationArgs[ii].getBuffer());
-                }
-            };
+                spSetTypeNameForEntryPointExistentialTypeParam(
+                    slangRequest,
+                    entryPoint,
+                    ii,
+                    request.entryPointSpecializationArgs[ii].getBuffer());
+            }
+        };
 
         Index explicitEntryPointCount = request.entryPoints.getCount();
         for (Index ee = 0; ee < explicitEntryPointCount; ++ee)
@@ -210,7 +230,7 @@ void ShaderCompilerUtil::Output::reset()
     ComPtr<slang::IComponentType> linkedSlangProgram;
 
     List<ShaderCompileRequest::EntryPoint> actualEntryPoints;
-    if(input.passThrough == SLANG_PASS_THROUGH_NONE)
+    if (input.passThrough == SLANG_PASS_THROUGH_NONE)
     {
         // In the case where pass-through compilation is not being used,
         // we can use the Slang reflection information to discover what
@@ -218,7 +238,9 @@ void ShaderCompilerUtil::Output::reset()
         // loading of code.
         //
         auto reflection = slang::ProgramLayout::get(slangRequest);
-        SLANG_RETURN_ON_FAIL(spCompileRequest_getProgramWithEntryPoints(slangRequest, linkedSlangProgram.writeRef()));
+        SLANG_RETURN_ON_FAIL(spCompileRequest_getProgramWithEntryPoints(
+            slangRequest,
+            linkedSlangProgram.writeRef()));
 
         // Get the amount of entry points in reflection
         Index entryPointCount = Index(reflection->getEntryPointCount());
@@ -226,7 +248,7 @@ void ShaderCompilerUtil::Output::reset()
         // We must have at least one entry point (whether explicit or implicit)
         SLANG_ASSERT(entryPointCount);
 
-        for(Index ee = 0; ee < entryPointCount; ++ee)
+        for (Index ee = 0; ee < entryPointCount; ++ee)
         {
             auto entryPoint = reflection->getEntryPointByIndex(ee);
             const char* entryPointName = entryPoint->getName();
@@ -281,9 +303,14 @@ void ShaderCompilerUtil::Output::reset()
     return SLANG_OK;
 }
 
-/* static */ SlangResult ShaderCompilerUtil::compileProgram(slang::IGlobalSession* globalSession, const Options& options, const Input& input, const ShaderCompileRequest& request, Output& out)
+/* static */ SlangResult ShaderCompilerUtil::compileProgram(
+    slang::IGlobalSession* globalSession,
+    const Options& options,
+    const Input& input,
+    const ShaderCompileRequest& request,
+    Output& out)
 {
-    if( input.passThrough == SLANG_PASS_THROUGH_NONE )
+    if (input.passThrough == SLANG_PASS_THROUGH_NONE)
     {
         return _compileProgramImpl(globalSession, options, input, request, out);
     }
@@ -315,7 +342,8 @@ void ShaderCompilerUtil::Output::reset()
             // TODO: we want to pass along a flag to skip codegen...
 
 
-            SLANG_RETURN_ON_FAIL(_compileProgramImpl(globalSession, options, slangInput, request, slangOutput));
+            SLANG_RETURN_ON_FAIL(
+                _compileProgramImpl(globalSession, options, slangInput, request, slangOutput));
         }
 
         // Now we have what we need to be able to do the downstream compile better.
@@ -334,7 +362,9 @@ void ShaderCompilerUtil::Output::reset()
     }
 }
 
-/* static */SlangResult ShaderCompilerUtil::readSource(const String& inSourcePath, List<char>& outSourceText)
+/* static */ SlangResult ShaderCompilerUtil::readSource(
+    const String& inSourcePath,
+    List<char>& outSourceText)
 {
     // Read in the source code
     FILE* sourceFile = fopen(inSourcePath.getBuffer(), "rb");
@@ -348,7 +378,7 @@ void ShaderCompilerUtil::Output::reset()
     fseek(sourceFile, 0, SEEK_SET);
 
     outSourceText.setCount(sourceSize + 1);
-    if(fread(outSourceText.getBuffer(), sourceSize, 1, sourceFile) != 1)
+    if (fread(outSourceText.getBuffer(), sourceSize, 1, sourceFile) != 1)
     {
         fprintf(stderr, "error: failed to read from '%s'\n", inSourcePath.getBuffer());
         return SLANG_FAIL;
@@ -359,7 +389,7 @@ void ShaderCompilerUtil::Output::reset()
     return SLANG_OK;
 }
 
-/* static */SlangResult ShaderCompilerUtil::compileWithLayout(
+/* static */ SlangResult ShaderCompilerUtil::compileWithLayout(
     slang::IGlobalSession* globalSession,
     const Options& options,
     const ShaderCompilerUtil::Input& input,
@@ -371,7 +401,8 @@ void ShaderCompilerUtil::Output::reset()
     List<char> sourceText;
     SLANG_RETURN_ON_FAIL(readSource(sourcePath, sourceText));
 
-    if (input.sourceLanguage == SLANG_SOURCE_LANGUAGE_CPP || input.sourceLanguage == SLANG_SOURCE_LANGUAGE_C)
+    if (input.sourceLanguage == SLANG_SOURCE_LANGUAGE_CPP ||
+        input.sourceLanguage == SLANG_SOURCE_LANGUAGE_C)
     {
         // Add an include of the prelude
         ComPtr<ISlangBlob> prelude;
@@ -379,7 +410,7 @@ void ShaderCompilerUtil::Output::reset()
 
         String preludeString = StringUtil::getString(prelude);
 
-        // Add the prelude 
+        // Add the prelude
         StringBuilder builder;
         builder << preludeString << "\n";
         builder << UnownedStringSlice(sourceText.getBuffer(), sourceText.getCount());
@@ -395,14 +426,14 @@ void ShaderCompilerUtil::Output::reset()
     // Default the amount of renderTargets based on shader type
     switch (shaderType)
     {
-        default:
-            layout.numRenderTargets = 1;
-            break;
+    default:
+        layout.numRenderTargets = 1;
+        break;
 
-        case Options::ShaderProgramType::Compute:
-        case Options::ShaderProgramType::RayTracing:
-            layout.numRenderTargets = 0;
-            break;
+    case Options::ShaderProgramType::Compute:
+    case Options::ShaderProgramType::RayTracing:
+        layout.numRenderTargets = 0;
+        break;
     }
 
     // Deterministic random generator
@@ -429,65 +460,65 @@ void ShaderCompilerUtil::Output::reset()
     // mechanisms for discovering entry points (e.g., `[shader(...)]`
     // attributes).
     //
-    if( !options.dontAddDefaultEntryPoints )
+    if (!options.dontAddDefaultEntryPoints)
     {
-        switch(shaderType)
+        switch (shaderType)
         {
         case Options::ShaderProgramType::Graphics:
         case Options::ShaderProgramType::GraphicsCompute:
-        {
-            ShaderCompileRequest::EntryPoint vertexEntryPoint;
-            vertexEntryPoint.name = vertexEntryPointName;
-            vertexEntryPoint.slangStage = SLANG_STAGE_VERTEX;
-            compileRequest.entryPoints.add(vertexEntryPoint);
+            {
+                ShaderCompileRequest::EntryPoint vertexEntryPoint;
+                vertexEntryPoint.name = vertexEntryPointName;
+                vertexEntryPoint.slangStage = SLANG_STAGE_VERTEX;
+                compileRequest.entryPoints.add(vertexEntryPoint);
 
-            ShaderCompileRequest::EntryPoint fragmentEntryPoint;
-            fragmentEntryPoint.name = fragmentEntryPointName;
-            fragmentEntryPoint.slangStage = SLANG_STAGE_FRAGMENT;
-            compileRequest.entryPoints.add(fragmentEntryPoint);
-        }
-        break;
+                ShaderCompileRequest::EntryPoint fragmentEntryPoint;
+                fragmentEntryPoint.name = fragmentEntryPointName;
+                fragmentEntryPoint.slangStage = SLANG_STAGE_FRAGMENT;
+                compileRequest.entryPoints.add(fragmentEntryPoint);
+            }
+            break;
         case Options::ShaderProgramType::GraphicsTaskMeshCompute:
-        {
-            ShaderCompileRequest::EntryPoint taskEntryPoint;
-            taskEntryPoint.name = taskEntryPointName;
-            taskEntryPoint.slangStage = SLANG_STAGE_AMPLIFICATION;
-            compileRequest.entryPoints.add(taskEntryPoint);
-        }
-        [[fallthrough]];
+            {
+                ShaderCompileRequest::EntryPoint taskEntryPoint;
+                taskEntryPoint.name = taskEntryPointName;
+                taskEntryPoint.slangStage = SLANG_STAGE_AMPLIFICATION;
+                compileRequest.entryPoints.add(taskEntryPoint);
+            }
+            [[fallthrough]];
         case Options::ShaderProgramType::GraphicsMeshCompute:
-        {
-            ShaderCompileRequest::EntryPoint meshEntryPoint;
-            meshEntryPoint.name = meshEntryPointName;
-            meshEntryPoint.slangStage = SLANG_STAGE_MESH;
-            compileRequest.entryPoints.add(meshEntryPoint);
+            {
+                ShaderCompileRequest::EntryPoint meshEntryPoint;
+                meshEntryPoint.name = meshEntryPointName;
+                meshEntryPoint.slangStage = SLANG_STAGE_MESH;
+                compileRequest.entryPoints.add(meshEntryPoint);
 
-            ShaderCompileRequest::EntryPoint fragmentEntryPoint;
-            fragmentEntryPoint.name = fragmentEntryPointName;
-            fragmentEntryPoint.slangStage = SLANG_STAGE_FRAGMENT;
-            compileRequest.entryPoints.add(fragmentEntryPoint);
-        }
-        break;
+                ShaderCompileRequest::EntryPoint fragmentEntryPoint;
+                fragmentEntryPoint.name = fragmentEntryPointName;
+                fragmentEntryPoint.slangStage = SLANG_STAGE_FRAGMENT;
+                compileRequest.entryPoints.add(fragmentEntryPoint);
+            }
+            break;
         case Options::ShaderProgramType::RayTracing:
-        {
-            // Note: Current GPU ray tracing pipelines allow for an
-            // almost arbitrary mix of entry points for different stages
-            // to be used together (e.g., a single "program" might
-            // have multiple any-hit shaders, multiple miss shaders, etc.)
-            //
-            // Rather than try to define a fixed set of entry point
-            // names and stages that the testing will support, we will
-            // instead rely on `[shader(...)]` annotations to tell us
-            // what entry points are present in the input code.
-        }
-        break;
+            {
+                // Note: Current GPU ray tracing pipelines allow for an
+                // almost arbitrary mix of entry points for different stages
+                // to be used together (e.g., a single "program" might
+                // have multiple any-hit shaders, multiple miss shaders, etc.)
+                //
+                // Rather than try to define a fixed set of entry point
+                // names and stages that the testing will support, we will
+                // instead rely on `[shader(...)]` annotations to tell us
+                // what entry points are present in the input code.
+            }
+            break;
         default:
-        {
-            ShaderCompileRequest::EntryPoint computeEntryPoint;
-            computeEntryPoint.name = computeEntryPointName;
-            computeEntryPoint.slangStage = SLANG_STAGE_COMPUTE;
-            compileRequest.entryPoints.add(computeEntryPoint);
-        }
+            {
+                ShaderCompileRequest::EntryPoint computeEntryPoint;
+                computeEntryPoint.name = computeEntryPointName;
+                computeEntryPoint.slangStage = SLANG_STAGE_COMPUTE;
+                compileRequest.entryPoints.add(computeEntryPoint);
+            }
         }
     }
     compileRequest.globalSpecializationArgs = layout.globalSpecializationArgs;
@@ -500,7 +531,12 @@ void ShaderCompilerUtil::Output::reset()
         c.idOverride = conformance.idOverride;
         compileRequest.typeConformances.add(c);
     }
-    return ShaderCompilerUtil::compileProgram(globalSession, options, input, compileRequest, output.output);
+    return ShaderCompilerUtil::compileProgram(
+        globalSession,
+        options,
+        input,
+        compileRequest,
+        output.output);
 }
 
-} // renderer_test
+} // namespace renderer_test

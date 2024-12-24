@@ -431,7 +431,7 @@ struct MyType
 
 int useVal(Optional<MyType> p)
 {
-    if (p == none)        // Equivalent to `p.hasValue`
+    if (p == none)        // Equivalent to `!p.hasValue`
         return 0;
     return p.value.val;
 }
@@ -567,7 +567,7 @@ void test()
 }
 ```
 
-This feature is similar to extensions in Swift and partial classes in C#.
+This feature is similar to extensions in Swift and extension methods in C#.
 
 > #### Note:
 > You can only extend a type with additional methods. Extending with additional data fields is not allowed.
@@ -672,7 +672,7 @@ struct MaxValueAttribute
 uniform int scaleFactor;
 ```
 
-In the above code, the `MaxValueAttribute` struct type is decorated with the `[__AttributeUsage]` attribute, which informs that `MaxValueAttribute` type should be interpreted as a definiton for a user-defined attribute, `[MaxValue]`, that can be used to decorate all variables or fields. The members of the struct defines the argument list for the attribute.
+In the above code, the `MaxValueAttribute` struct type is decorated with the `[__AttributeUsage]` attribute, which informs that `MaxValueAttribute` type should be interpreted as a definition for a user-defined attribute, `[MaxValue]`, that can be used to decorate all variables or fields. The members of the struct defines the argument list for the attribute.
 
 The `scaleFactor` uniform parameter is declared with the user defined `[MaxValue]` attribute, providing two arguments for `value` and `description`.
 

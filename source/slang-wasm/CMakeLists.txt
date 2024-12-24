@@ -3,7 +3,7 @@
 #
 # This is an executable target because emcmake produces .a files without bindings if you just create a static library
 # https://stackoverflow.com/questions/63622009/static-library-built-with-cmake-as-a-with-emscripten-instead-of-wasm-js
-if (EMSCRIPTEN)
+if(EMSCRIPTEN)
     slang_add_target(
         .
         EXECUTABLE
@@ -22,5 +22,8 @@ if (EMSCRIPTEN)
         INCLUDE_DIRECTORIES_PUBLIC ${slang_SOURCE_DIR}/include .
     )
     # To generate binding code
-    target_link_options(slang-wasm PUBLIC "--bind")
+    target_link_options(
+        slang-wasm
+        PUBLIC "--bind" "--emit-tsd" "interface.d.ts" "-s" "EXPORT_ES6=1"
+    )
 endif()

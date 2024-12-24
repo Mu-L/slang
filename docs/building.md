@@ -42,14 +42,14 @@ git clone https://github.com/shader-slang/slang --recursive
 For a Ninja based build system (all platforms) run:
 ```bash
 cmake --preset default
-cmake --build --preset release # or --preset debug
+cmake --build --preset releaseWithDebugInfo # or --preset debug, or --preset release
 ```
 
 For Visual Studio run:
 ```bash
 cmake --preset vs2022 # or 'vs2019' or `vs2022-dev`
 start devenv ./build/slang.sln # to optionally open the project in Visual Studio
-cmake --build --preset release # to build from the CLI
+cmake --build --preset releaseWithDebugInfo # to build from the CLI, could also use --preset release or --preset debug
 ```
 
 There also exists a `vs2022-dev` preset which turns on features to aid
@@ -110,6 +110,31 @@ cmake --build --preset emscripten --target slang-wasm
 > Note: If the last build step fails, try running the command that `emcmake`
 > outputs, directly.
 
+## Installing
+
+Build targets may be installed using cmake:
+
+```bash
+cmake --build . --target install
+```
+
+This should install `SlangConfig.cmake` that should allow `find_package` to work.
+SlangConfig.cmake defines `SLANG_EXECUTABLE` variable that will point to `slangc`
+executable and also define `slang::slang` target to be linked to.
+
+For now, `slang::slang` is the only exported target defined in the config which can
+be linked to.
+
+Example usage
+
+```cmake
+find_package(slang REQUIRED PATHS ${your_cmake_install_prefix_path} NO_DEFAULT_PATH)
+# slang_FOUND should be automatically set
+target_link_libraries(yourLib PUBLIC
+  slang::slang
+)
+```
+
 ## Testing
 
 ```bash
@@ -125,8 +150,9 @@ See the [documentation on testing](../tools/slang-test/README.md) for more infor
 | Option                            | Default                    | Description                                                                                  |
 |-----------------------------------|----------------------------|----------------------------------------------------------------------------------------------|
 | `SLANG_VERSION`                   | Latest `v*` tag            | The project version, detected using git if available                                         |
-| `SLANG_EMBED_CORE_MODULE`         | `FALSE`                    | Build slang with an embedded version of the core module                                      |
+| `SLANG_EMBED_CORE_MODULE`         | `TRUE`                     | Build slang with an embedded version of the core module                                      |
 | `SLANG_EMBED_CORE_MODULE_SOURCE`  | `TRUE`                     | Embed the core module source in the binary                                                   |
+| `SLANG_ENABLE_DXIL`               | `TRUE`                     | Enable generating DXIL using DXC                                                             |
 | `SLANG_ENABLE_ASAN`               | `FALSE`                    | Enable ASAN (address sanitizer)                                                              |
 | `SLANG_ENABLE_FULL_IR_VALIDATION` | `FALSE`                    | Enable full IR validation (SLOW!)                                                            |
 | `SLANG_ENABLE_IR_BREAK_ALLOC`     | `FALSE`                    | Enable IR BreakAlloc functionality for debugging.                                            |
@@ -138,6 +164,8 @@ See the [documentation on testing](../tools/slang-test/README.md) for more infor
 | `SLANG_ENABLE_TESTS`              | `TRUE`                     | Enable test targets, requires SLANG_ENABLE_GFX, SLANG_ENABLE_SLANGD and SLANG_ENABLE_SLANGRT |
 | `SLANG_ENABLE_EXAMPLES`           | `TRUE`                     | Enable example targets, requires SLANG_ENABLE_GFX                                            |
 | `SLANG_LIB_TYPE`                  | `SHARED`                   | How to build the slang library                                                               |
+| `SLANG_ENABLE_RELEASE_DEBUG_INFO` | `TRUE`                     | Enable generating debug info for Release configs                                             |
+| `SLANG_ENABLE_SPLIT_DEBUG_INFO`   | `TRUE`                     | Enable generating split debug info for Debug and RelWithDebInfo configs                      |
 | `SLANG_SLANG_LLVM_FLAVOR`         | `FETCH_BINARY_IF_POSSIBLE` | How to set up llvm support                                                                   |
 | `SLANG_SLANG_LLVM_BINARY_URL`     | System dependent           | URL specifying the location of the slang-llvm prebuilt library                               |
 | `SLANG_GENERATORS_PATH`           | ``                         | Path to an installed `all-generators` target for cross compilation                           |

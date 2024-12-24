@@ -146,6 +146,8 @@ public in int gl_SampleID : SV_SampleIndex;
 public in int gl_VertexIndex : SV_VertexID;
 public in int gl_ViewIndex : SV_ViewID;
 public in int gl_ViewportIndex : SV_ViewportArrayIndex;
+public in int gl_BaseVertex : SV_StartVertexLocation;
+public in int gl_BaseInstance : SV_StartInstanceLocation;
 
 
 // Override operator* behavior to compute algebric product of matrices and vectors.
@@ -1147,168 +1149,6 @@ public void imulExtended(highp vector<int,N> x, highp vector<int,N> y, out highp
         {
            imulExtended(x[i], y[i], msb[i], lsb[i]);
         }
-    }
-}
-
-[__readNone]
-[ForceInline]
-[require(cpp_cuda_glsl_hlsl_spirv, GLSL_400)]
-public int bitfieldExtract(int value, int offset, int bits)
-{
-    __target_switch
-    {
-    case glsl: __intrinsic_asm "bitfieldExtract";
-    case spirv: return spirv_asm {
-        result:$$int = OpBitFieldSExtract $value $offset $bits
-    };
-    default:
-        return int(uint(value >> offset) & ((1u << bits) - 1));
-    }
-}
-
-__generic<let N:int>
-[__readNone]
-[ForceInline]
-[require(cpp_cuda_glsl_hlsl_spirv, GLSL_400)]
-public vector<int,N> bitfieldExtract(vector<int,N> value, int offset, int bits)
-{
-    __target_switch
-    {
-    case glsl: __intrinsic_asm "bitfieldExtract";
-    case spirv: return spirv_asm {
-        result:$$vector<int,N> = OpBitFieldSExtract $value $offset $bits
-    };
-    default:
-        vector<int,N> result;
-        [ForceUnroll]
-        for (int i = 0; i < N; ++i)
-        {
-            result[i] = bitfieldExtract(value[i], offset, bits);
-        }
-        return result;
-    }
-}
-
-[__readNone]
-[ForceInline]
-[require(cpp_cuda_glsl_hlsl_spirv, GLSL_400)]
-public uint bitfieldExtract(uint value, int offset, int bits)
-{
-    __target_switch
-    {
-    case glsl: __intrinsic_asm "bitfieldExtract";
-    case spirv: return spirv_asm {
-        result:$$uint = OpBitFieldUExtract $value $offset $bits
-    };
-    default:
-        return (value >> offset) & ((1u << bits) - 1);
-    }
-}
-
-__generic<let N:int>
-[__readNone]
-[ForceInline]
-[require(cpp_cuda_glsl_hlsl_spirv, GLSL_400)]
-public vector<uint,N> bitfieldExtract(vector<uint,N> value, int offset, int bits)
-{
-    __target_switch
-    {
-    case glsl: __intrinsic_asm "bitfieldExtract";
-    case spirv: return spirv_asm {
-        result:$$vector<uint,N> = OpBitFieldUExtract $value $offset $bits
-    };
-    default:
-        vector<uint,N> result;
-        [ForceUnroll]
-        for (int i = 0; i < N; ++i)
-        {
-            result[i] = bitfieldExtract(value[i], offset, bits);
-        }
-        return result;
-    }
-}
-
-[__readNone]
-[ForceInline]
-[require(cpp_cuda_glsl_hlsl_spirv, GLSL_400)]
-public uint bitfieldInsert(uint base, uint insert, int offset, int bits)
-{
-    __target_switch
-    {
-    case glsl: __intrinsic_asm "bitfieldInsert";
-    case spirv: return spirv_asm {
-        result:$$uint = OpBitFieldInsert $base $insert $offset $bits
-    };
-    default:
-        uint clearMask = ~(((1u << bits) - 1u) << offset);
-        uint clearedBase = base & clearMask;
-        uint maskedInsert = (insert & ((1u << bits) - 1u)) << offset;
-        return clearedBase | maskedInsert;
-    }
-}
-
-__generic<let N:int>
-[__readNone]
-[ForceInline]
-[require(cpp_cuda_glsl_hlsl_spirv, GLSL_400)]
-public vector<uint,N> bitfieldInsert(vector<uint,N> base, vector<uint,N> insert, int offset, int bits)
-{
-    __target_switch
-    {
-    case glsl: __intrinsic_asm "bitfieldInsert";
-    case spirv: return spirv_asm {
-        result:$$vector<uint,N> = OpBitFieldInsert $base $insert $offset $bits
-    };
-    default:
-        vector<uint,N> result;
-        [ForceUnroll]
-        for (int i = 0; i < N; ++i)
-        {
-            result[i] = bitfieldInsert(base[i], insert[i], offset, bits);
-        }
-        return result;
-    }
-}
-
-[__readNone]
-[ForceInline]
-[require(cpp_cuda_glsl_hlsl_spirv, GLSL_400)]
-public int bitfieldInsert(int base, int insert, int offset, int bits)
-{
-    __target_switch
-    {
-    case glsl: __intrinsic_asm "bitfieldInsert";
-    case spirv: return spirv_asm {
-        result:$$int = OpBitFieldInsert $base $insert $offset $bits
-    };
-    default:
-        uint clearMask = ~(((1u << bits) - 1u) << offset);
-        uint clearedBase = base & clearMask;
-        uint maskedInsert = (insert & ((1u << bits) - 1u)) << offset;
-        return clearedBase | maskedInsert;
-    }
-}
-
-__generic<let N:int>
-[__readNone]
-[ForceInline]
-[require(cpp_cuda_glsl_hlsl_spirv, GLSL_400)]
-public vector<int,N> bitfieldInsert(vector<int,N> base, vector<int,N> insert, int offset, int bits)
-{
-    __target_switch
-    {
-    case glsl: __intrinsic_asm "bitfieldInsert";
-    case spirv: return spirv_asm {
-        result:$$vector<int,N> = OpBitFieldInsert $base $insert $offset $bits
-    };
-    default:
-        vector<int,N> result;
-        [ForceUnroll]
-        for (int i = 0; i < N; ++i)
-        {
-            result[i] = bitfieldInsert(base[i], insert[i], offset, bits);
-        }
-        return result;
     }
 }
 
@@ -9601,3 +9441,14 @@ public bool allInvocationsEqual(bool value)
 {
     return WaveActiveAllEqual(value);
 }
+
+
+/// extensions
+/// https://github.com/KhronosGroup/GLSL/blob/main/extensions/ext/GL_EXT_nonuniform_qualifier.txt
+
+__generic<T:__BuiltinArithmeticType>
+__intrinsic_op($(kIROp_NonUniformResourceIndex))
+[require(cpp_cuda_glsl_hlsl_spirv, nonuniformqualifier)]
+public T nonuniformEXT(T index);
+
+

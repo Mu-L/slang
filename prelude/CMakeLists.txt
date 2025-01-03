@@ -11,7 +11,9 @@ foreach(input ${prelude_headers})
     set(output "${CMAKE_CURRENT_BINARY_DIR}/${input_name}.cpp")
     add_custom_command(
         OUTPUT ${output}
-        COMMAND slang-embed "${input}" ${output}
+        COMMAND
+            slang-embed "${input}" "${CMAKE_CURRENT_LIST_DIR}/../include"
+            ${output}
         DEPENDS ${input} slang-embed
         VERBATIM
     )
@@ -24,7 +26,9 @@ slang_add_target(
     EXPLICIT_SOURCE ${prelude_source}
     EXCLUDE_FROM_ALL
     TARGET_NAME prelude
-    INCLUDE_DIRECTORIES_PUBLIC ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_LIST_DIR}/../include
+    INCLUDE_DIRECTORIES_PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/../include
     LINK_WITH_PRIVATE unordered_dense::unordered_dense
     PUBLIC_HEADERS ${CMAKE_CURRENT_LIST_DIR}/slang*.h
     # It's an object library, so the install step only installs the headers

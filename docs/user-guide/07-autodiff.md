@@ -167,6 +167,9 @@ interface IDifferentiablePtrType
 }
 ```
 
+> #### Note ####
+> Support for `IDifferentiablePtrType` is still experimental. 
+
 Types should not conform to both `IDifferentiablePtrType` and `IDifferentiable`. Such cases will result in a compiler error.
 
 
@@ -378,7 +381,7 @@ struct MyType
 R original(T0 p0, inout T1, p1, T2 p2);
 ```
 
-Sometimes the derivative function needs to be defined in a different module from the original function, or the derivative function cannot be made visible from the original function. In this case, we can use the `[ForwardDerivativeOf(originalFunnc)]` attribute to inform the compiler that `originalFunc` should be treated as a forward-differentiable function, and the current function is the derivative implementation of `originalFunc`. The following code will have the same effect to associate `derivative` and the forward-derivative implementation of `original`:
+Sometimes the derivative function needs to be defined in a different module from the original function, or the derivative function cannot be made visible from the original function. In this case, we can use the `[ForwardDerivativeOf(originalFunc)]` attribute to inform the compiler that `originalFunc` should be treated as a forward-differentiable function, and the current function is the derivative implementation of `originalFunc`. The following code will have the same effect to associate `derivative` and the forward-derivative implementation of `original`:
 
 ```csharp
 R original(T0 p0, inout T1, p1, T2 p2);
@@ -501,7 +504,7 @@ The following built-in functions are backward differentiable and both their forw
 
 ## Primal Substitute Functions
 
-Sometimes it is desirable to replace a function with another when generating forward or backward derivative propagation code. For example, the following code shows a function that computes the integral of some term by sampling and we want to use a different sampling stragegy when computing the derivatives.
+Sometimes it is desirable to replace a function with another when generating forward or backward derivative propagation code. For example, the following code shows a function that computes the integral of some term by sampling and we want to use a different sampling strategy when computing the derivatives.
 ```csharp
 float myTerm(float x)
 {
@@ -535,7 +538,7 @@ float getSampleForDerivativeComputation(float a, float b)
 
 Here, the `[PrimalSubstituteOf(getSample)]` attributes marks the `getSampleForDerivativeComputation` function as the substitute for `getSample` in derivative propagation functions. When a function has a primal substitute, the compiler will treat all calls to that function as if it is a call to the substitute function when generating derivative code. Note that this only applies to compiler generated derivative function and does not affect user provided derivative functions. If a user provided derivative function calls `getSample`, it will not be replaced by `getSampleForDerivativeComputation` by the compiler.
 
-Similar to `[ForwardDerivative]` and `[ForwardDerivativeOf]` attributes, The `[PrimalSubsitute(substFunc)]` attribute works the other way around: it specifies the primal substitute function of the function being marked.
+Similar to `[ForwardDerivative]` and `[ForwardDerivativeOf]` attributes, The `[PrimalSubstitute(substFunc)]` attribute works the other way around: it specifies the primal substitute function of the function being marked.
 
 Primal substitute can be used as another way to make a function differentiable. A function is considered differentiable if it has a primal substitute that is differentiable. The following code illustrates this mechanism.
 ```csharp
@@ -650,7 +653,7 @@ This may lead to unexpected results. For example:
 struct MyType : IDifferentiable
 {
     no_diff float member;
-    float someOtherMemther;
+    float someOtherMember;
 }
 [ForwardDifferentiable]
 float f(float x)

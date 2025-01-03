@@ -12,10 +12,16 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           reaction-token: ${{ secrets.SLANGBOT_PAT }}
+          issue-type: pull-request
           config: >
             [
               {
                 "command": "format",
+                "permission": "none",
+                "issue_type": "pull-request"
+              },
+              {
+                "command": "regenerate-toc",
                 "permission": "none",
                 "issue_type": "pull-request"
               }
